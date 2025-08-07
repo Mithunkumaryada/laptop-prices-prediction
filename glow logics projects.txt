@@ -1,0 +1,78 @@
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score, mean_squared_error
+import math
+     
+
+df = pd.read_csv('laptop_price.csv', encoding='latin1')
+     
+
+
+df['Ram'] = df['Ram'].str.replace('GB', '').astype(int)
+df['Weight'] = df['Weight'].str.replace('kg', '').astype(float)
+df.drop(columns=['laptop_ID'], inplace=True)
+
+
+X = df.drop(columns=['Price_euros'])
+y = df['Price_euros']
+
+
+categorical_cols = X.select_dtypes(include='object').columns.tolist()
+numeric_cols = X.select_dtypes(exclude='object').columns.tolist()
+
+preprocessor = ColumnTransformer([
+    ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
+], remainder='passthrough')
+
+
+model = Pipeline([
+    ('preprocessing', preprocessor),
+    ('regressor', LinearRegression())])
+     
+
+print(df.columns.tolist())
+
+     
+['Company', 'Product', 'TypeName', 'Inches', 'ScreenResolution', 'Cpu', 'Ram', 'Memory', 'Gpu', 'OpSys', 'Weight', 'Price_euros']
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+rmse = math.sqrt(mean_squared_error(y_test, y_pred))
+
+print(f"R² Score: {r2:.2f}")
+print(f"RMSE: {rmse:.2f}")
+     
+R² Score: 0.84
+RMSE: 282.91
+
+def predict_price():
+    print("\nEnter Laptop Specs:")
+    data = {
+        'Company': input("Company: "),
+        'Product': input("Product: "),
+        'TypeName': input("Type (e.g., Ultrabook, Notebook): "),
+        'Inches': float(input("Screen Size (in inches): ")),
+        'ScreenResolution': input("Screen Resolution (e.g., 1920x1080): "),
+        'Cpu': input("CPU (e.g., Intel Core i5 2.5GHz): "),
+        'Ram': int(input("RAM (in GB): ")),
+        'Memory': input("Memory (e.g., 256GB SSD): "),
+        'Gpu': input("GPU (e.g., Intel HD Graphics 620): "),
+        'OpSys': input("Operating System: "),
+        'Weight': float(input("Weight (in kg): "))}
+
+    user_df = pd.DataFrame([data])
+    predicted_price = model.predict(user_df)[0]
+    print(f"\n💻 Predicted Laptop Price: €{predicted_price:.2f}")
+
+predict_price()
+     
+Enter Laptop Specs:
